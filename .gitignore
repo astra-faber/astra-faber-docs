@@ -3,3 +3,5 @@
 .idea
 .DS_Store
 data/
+.vitepress/cache/
+.vitepress/dist/
