@@ -1,0 +1,290 @@
+/* ============================================
+   AstraFaber — Custom VitePress Theme
+   品牌色：紫色系 #7c3aed
+   ============================================ */
+
+/* ---------- CSS Variables ---------- */
+:root {
+  --vp-c-brand-1: #7c3aed;
+  --vp-c-brand-2: #6d28d9;
+  --vp-c-brand-3: #5b21b6;
+  --vp-c-brand-soft: rgba(124, 58, 237, 0.14);
+
+  --vp-button-brand-bg: var(--vp-c-brand-1);
+  --vp-button-brand-hover-bg: var(--vp-c-brand-2);
+  --vp-button-brand-active-bg: var(--vp-c-brand-3);
+
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(135deg, #7c3aed 0%, #2563eb 50%, #06b6d4 100%);
+  --vp-home-hero-image-background-image: linear-gradient(135deg, rgba(124, 58, 237, 0.25) 0%, rgba(37, 99, 235, 0.25) 50%, rgba(6, 182, 212, 0.2) 100%);
+  --vp-home-hero-image-filter: blur(56px);
+}
+
+.dark {
+  --vp-c-brand-1: #a78bfa;
+  --vp-c-brand-2: #8b5cf6;
+  --vp-c-brand-3: #7c3aed;
+  --vp-c-brand-soft: rgba(167, 139, 250, 0.14);
+
+  --vp-button-brand-bg: var(--vp-c-brand-2);
+  --vp-button-brand-hover-bg: var(--vp-c-brand-1);
+  --vp-button-brand-active-bg: var(--vp-c-brand-3);
+
+  --vp-home-hero-image-background-image: linear-gradient(135deg, rgba(124, 58, 237, 0.3) 0%, rgba(37, 99, 235, 0.3) 50%, rgba(6, 182, 212, 0.25) 100%);
+}
+
+/* ---------- Hero Section ---------- */
+.VPHero .VPImage {
+  max-width: 220px;
+  max-height: 220px;
+}
+
+.VPHero .name {
+  font-size: 3.5rem !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.02em;
+}
+
+.VPHero .text {
+  font-size: 1.5rem !important;
+  font-weight: 500 !important;
+  color: var(--vp-c-text-2);
+}
+
+.VPHero .tagline {
+  font-size: 1.15rem !important;
+  line-height: 1.6;
+  color: var(--vp-c-text-3);
+  max-width: 520px;
+}
+
+/* Hero 背景渐变光晕 */
+.VPHome .VPHero {
+  position: relative;
+}
+
+.VPHome .VPHero::before {
+  content: '';
+  position: absolute;
+  top: -40%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 800px;
+  height: 600px;
+  background: radial-gradient(ellipse at center, rgba(124, 58, 237, 0.08) 0%, rgba(37, 99, 235, 0.04) 40%, transparent 70%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.dark .VPHome .VPHero::before {
+  background: radial-gradient(ellipse at center, rgba(124, 58, 237, 0.12) 0%, rgba(37, 99, 235, 0.06) 40%, transparent 70%);
+}
+
+/* ---------- Feature Cards ---------- */
+.VPFeatures .VPFeature {
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 12px;
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  background: var(--vp-c-bg-soft);
+}
+
+.VPFeatures .VPFeature:hover {
+  transform: translateY(-4px);
+  border-color: var(--vp-c-brand-1);
+  box-shadow: 0 12px 32px rgba(124, 58, 237, 0.1), 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.dark .VPFeatures .VPFeature:hover {
+  box-shadow: 0 12px 32px rgba(124, 58, 237, 0.15), 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.VPFeatures .VPFeature .icon {
+  font-size: 1.6rem;
+  margin-bottom: 8px;
+}
+
+.VPFeatures .VPFeature .title {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.VPFeatures .VPFeature .details {
+  font-size: 0.9rem;
+  color: var(--vp-c-text-2);
+  line-height: 1.6;
+}
+
+/* ---------- 首页性能指标区域 ---------- */
+.performance-section {
+  margin: 2rem auto 0;
+  max-width: 960px;
+  padding: 0 24px;
+}
+
+.performance-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin: 1.5rem 0;
+}
+
+.perf-card {
+  text-align: center;
+  padding: 32px 20px;
+  border-radius: 12px;
+  background: var(--vp-c-bg-soft);
+  border: 1px solid var(--vp-c-divider);
+  transition: all 0.3s ease;
+}
+
+.perf-card:hover {
+  border-color: var(--vp-c-brand-1);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(124, 58, 237, 0.08);
+}
+
+.dark .perf-card:hover {
+  box-shadow: 0 8px 24px rgba(124, 58, 237, 0.15);
+}
+
+.perf-card .number {
+  font-size: 2.4rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #7c3aed, #2563eb);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1.2;
+}
+
+.perf-card .label {
+  font-size: 0.9rem;
+  color: var(--vp-c-text-2);
+  margin-top: 8px;
+  font-weight: 500;
+}
+
+.perf-card .sub {
+  font-size: 0.78rem;
+  color: var(--vp-c-text-3);
+  margin-top: 4px;
+}
+
+@media (max-width: 640px) {
+  .performance-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .perf-card .number {
+    font-size: 2rem;
+  }
+
+  .VPHero .name {
+    font-size: 2.4rem !important;
+  }
+
+  .VPHero .text {
+    font-size: 1.2rem !important;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 960px) {
+  .performance-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* ---------- 快速开始区域 ---------- */
+.quickstart-section {
+  margin: 3rem auto;
+  max-width: 960px;
+  padding: 0 24px;
+}
+
+.quickstart-section h2 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 1.5rem;
+  background: linear-gradient(135deg, #7c3aed, #2563eb);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.quickstart-section .language-rust,
+.quickstart-section .language-bash {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* ---------- SDK 文档页面 ---------- */
+.vp-doc h1 {
+  font-weight: 800;
+  background: linear-gradient(135deg, #7c3aed 0%, #2563eb 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.vp-doc h2 {
+  border-top: 1px solid var(--vp-c-divider);
+  padding-top: 24px;
+}
+
+/* API 签名块 */
+.vp-doc .api-signature {
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: var(--vp-c-bg-soft);
+  border-left: 3px solid var(--vp-c-brand-1);
+  margin: 8px 0 16px;
+  font-size: 0.9rem;
+}
+
+/* 表格美化 */
+.vp-doc table {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.vp-doc table th {
+  background: var(--vp-c-bg-soft);
+  font-weight: 600;
+}
+
+.vp-doc table tr:hover td {
+  background: var(--vp-c-bg-soft);
+}
+
+/* 自定义 Badge */
+.badge-tip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(124, 58, 237, 0.1);
+  color: var(--vp-c-brand-1);
+}
+
+/* ---------- 导航栏 ---------- */
+.VPNavBar .title {
+  font-weight: 700 !important;
+}
+
+/* ---------- 滚动条美化 ---------- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--vp-c-divider);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--vp-c-text-3);
+}
