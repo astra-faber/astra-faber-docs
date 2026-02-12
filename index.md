@@ -2,44 +2,89 @@
 layout: home
 hero:
   name: AstraFaber
-  text: 高性能实时数据库
-  tagline: 基于 Apache Arrow 构建，面向 IoT 与边缘计算的列式存储引擎。gRPC Streaming 通信，设备孪生，毫秒级响应。
+  text: IoT & Robotics Platform
+  tagline: 面向物联网与机器人的统一平台。设备建模、数据管理、文件服务与数字孪生，一站式解决方案。
   image:
     src: /logo.svg
     alt: AstraFaber
   actions:
     - theme: brand
       text: 快速开始
-      link: /sdk/client
+      link: /sdk/
     - theme: alt
-      text: Twin SDK
-      link: /sdk/twin
+      text: Vera SDK
+      link: /sdk/vera/things
+    - theme: alt
+      text: Arca SDK
+      link: /sdk/arca/file
 
 features:
-  - icon: "\u26A1"
-    title: 极致写入性能
-    details: 子表级无锁并发写入，双 MemTable + WAL 批量刷盘，gRPC Streaming 实现 175 万行/秒吞吐。
+  - icon: "\uD83C\uDFD7\uFE0F"
+    title: 设备建模
+    details: 灵活的物模型定义，支持属性、事件、动作、子模型和组件化 Slot 扩展，轻松描述复杂设备。
   - icon: "\uD83D\uDD17"
     title: 设备孪生
-    details: 完整的物模型定义、期望/实际属性同步、离线队列、冲突解决，为每个设备维护云端数字镜像。
-  - icon: "\uD83D\uDCE1"
-    title: gRPC Streaming
-    details: 原生支持客户端流、服务端流和双向流，批量插入与查询性能提升数倍，延迟低至 48μs。
+    details: 为每个设备维护云端数字镜像，期望/实际属性双向同步，冲突自动解决。
+  - icon: "\uD83D\uDCC1"
+    title: 文件管理
+    details: MCAP 日志录制与上传，预签名 URL 安全传输，自动轮转策略，适配机器人与 IoT 场景。
+  - icon: "\uD83D\uDD04"
+    title: 离线优先
+    details: SDK 内置离线队列与本地缓存，断网自动暂存，恢复连接后自动同步，数据零丢失。
+  - icon: "\u26A1"
+    title: 高性能
+    details: 百万级设备接入，毫秒级属性同步，gRPC 双向流通信，175 万行/秒写入吞吐。
   - icon: "\uD83D\uDEE1\uFE0F"
     title: 类型安全
-    details: Rust 编写，编译期类型检查。支持 Enum8/16、Struct、Geometry 等丰富类型系统，零拷贝序列化。
-  - icon: "\uD83D\uDD04"
-    title: 离线同步
-    details: SDK 内置离线队列与本地缓存，断网自动暂存，恢复连接后自动同步，HLC 混合逻辑时钟保证时序。
-  - icon: "\uD83D\uDD0D"
-    title: DataFusion 集成
-    details: 内置 Apache DataFusion 查询引擎，支持 SQL 查询、自定义表达式和查询优化。
+    details: Rust 编写，编译期类型检查。Schema 校验保障数据质量，丰富类型系统覆盖各类场景。
 ---
+
+<div class="products-section">
+
+<h2 class="section-title">产品矩阵</h2>
+<p class="section-desc">四大产品协同，覆盖设备管理、文件存储、数字孪生与仿真全链路</p>
+
+<div class="products-grid">
+  <a class="product-card" href="/sdk/vera/things">
+    <div class="product-icon">🏛️</div>
+    <div class="product-info">
+      <h3>Vera</h3>
+      <span class="product-badge active">物模型平台</span>
+      <p>设备建模与管理，物模型定义，属性双向同步，支持海量设备接入与毫秒级响应。</p>
+    </div>
+  </a>
+  <a class="product-card" href="/sdk/arca/file">
+    <div class="product-icon">📦</div>
+    <div class="product-info">
+      <h3>Arca</h3>
+      <span class="product-badge active">文件服务</span>
+      <p>文件上传与管理，MCAP 日志录制，预签名安全传输，自动轮转与断点续传。</p>
+    </div>
+  </a>
+  <div class="product-card coming-soon">
+    <div class="product-icon">👁️</div>
+    <div class="product-info">
+      <h3>Anima</h3>
+      <span class="product-badge soon">即将推出</span>
+      <p>数字孪生引擎，3D 实时可视化，场景记录与回放，支持浏览器端运行。</p>
+    </div>
+  </div>
+  <div class="product-card coming-soon">
+    <div class="product-icon">🌌</div>
+    <div class="product-info">
+      <h3>Cosmo</h3>
+      <span class="product-badge soon">即将推出</span>
+      <p>仿真平台，物理模拟与场景测试，与 Anima 深度集成，加速开发验证流程。</p>
+    </div>
+  </div>
+</div>
+
+</div>
 
 <div class="performance-section">
 
-<h2 style="font-size:1.6rem;font-weight:700;text-align:center;margin-bottom:0.5rem;background:linear-gradient(135deg,#7c3aed,#2563eb);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">核心性能指标</h2>
-<p style="text-align:center;color:var(--vp-c-text-3);margin-bottom:1.5rem;font-size:0.95rem;">实测数据 · Intel i7 / 32GB RAM / SSD</p>
+<h2 class="section-title">核心性能指标</h2>
+<p class="section-desc">实测数据 · Intel i7 / 32GB RAM / SSD</p>
 
 <div class="performance-grid">
   <div class="perf-card">
@@ -65,40 +110,39 @@ features:
 
 ## 快速开始
 
-**1. 启动服务器**
+**安装 SDK**
 
-```bash
-cargo run --release
-# AstraFaber Server listening on 127.0.0.1:50051
+```toml
+[dependencies]
+astra-faber = { version = "0.1", features = ["vera", "arca"] }
+tokio = { version = "1", features = ["full"] }
 ```
 
-**2. 连接并写入数据**
+**上报设备属性**
 
 ```rust
-use astra_faber_client::{Client, SchemaBuilder, Table, int32_type, string_type};
+use astra_faber::{ThingsClient, ThingsConfig, PropertyValue};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // 连接服务器
-    let mut client = Client::connect("http://127.0.0.1:50051").await?;
-
-    // 定义 Schema
-    let schema = SchemaBuilder::new()
-        .add_field("id", int32_type(), None)
-        .add_field("name", string_type(), None)
-        .build();
-
-    // 创建表
-    client.create_table("users", schema.fields).await?;
-
-    // 插入数据
-    let table = Table::new("users")
-        .with_schema(schema)
-        .add_row(astra_faber_client::row![1i32, "Alice"])?
-        .add_row(astra_faber_client::row![2i32, "Bob"])?
+    let config = ThingsConfig::builder()
+        .server_addr("http://127.0.0.1:50051")
+        .model_id("temperature_sensor")
+        .device_id("sensor-001")
         .build()?;
 
-    client.insert_table(table).await?;
+    let client = ThingsClient::new(config).await?;
+    client.connect().await?;
+
+    // 上报属性
+    client.report("temperature", 23.5f64).await?;
+    client.report("humidity", 65.0f64).await?;
+
+    // 读取云端期望值
+    if let Some(desired) = client.get_desired("temperature") {
+        println!("期望温度: {}", desired.to_string_repr());
+    }
+
     Ok(())
 }
 ```

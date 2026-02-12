@@ -1,33 +1,24 @@
-# Twin SDK
+# Vera Things SDK
 
-Twin SDK 是 AstraFaber 的设备孪生客户端库，运行在边缘设备上，为每个设备维护本地属性缓存、离线队列和 Schema 校验，通过 gRPC 双向流与云端实时同步。
+设备孪生客户端，运行在边缘设备上，为每个设备维护本地属性缓存、离线队列和 Schema 校验，通过 gRPC 双向流与云端实时同步。
 
 ## 安装
 
-在 `Cargo.toml` 中添加依赖：
-
 ```toml
 [dependencies]
-astra-faber-twin-sdk = { path = "../sdk/rust/twin-sdk" }
+astra-faber = { version = "0.1", features = ["vera"] }
 tokio = { version = "1", features = ["full"] }
-```
-
-启用文件持久化（可选）：
-
-```toml
-[dependencies]
-astra-faber-twin-sdk = { path = "../sdk/rust/twin-sdk", features = ["file-persistence"] }
 ```
 
 ## 快速上手
 
 ```rust
-use astra_faber_twin_sdk::{TwinClient, TwinConfig};
+use astra_faber::{ThingsClient, ThingsConfig};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 1. 配置
-    let config = TwinConfig::builder()
+    let config = ThingsConfig::builder()
         .server_addr("http://127.0.0.1:50051")
         .model_id("temperature_sensor")
         .device_id("sensor-001")
@@ -35,7 +26,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build()?;
 
     // 2. 创建客户端并连接
-    let client = TwinClient::new(config)?;
+    let client = ThingsClient::new(config).await?;
     client.connect().await?;
 
     // 3. 上报属性
@@ -53,14 +44,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## 核心 API
 
-### TwinConfig / TwinConfigBuilder
+### ThingsConfig / ThingsConfigBuilder
 
 使用 Builder 模式配置 SDK。
 
 ```rust
-use astra_faber_twin_sdk::{TwinConfig, PersistenceConfig};
+use astra_faber::{ThingsConfig, PersistenceConfig};
 
-let config = TwinConfig::builder()
+let config = ThingsConfig::builder()
     .server_addr("http://127.0.0.1:50051")
     .model_id("robot_arm")
     .device_id("franka-001")
@@ -75,7 +66,7 @@ let config = TwinConfig::builder()
     .batch_report_threshold(50)
     .batch_report_interval_ms(100)
     // 持久化
-    .file_persistence("./twin_data")
+    .file_persistence("./things_data")
     // 校验
     .validate_before_report(true)
     .auto_fetch_schema(true)
@@ -95,30 +86,41 @@ let config = TwinConfig::builder()
 | `max_reconnect_attempts` | `0`（无限） | 最大重连次数 |
 | `max_offline_queue_size` | `10000` | 离线队列容量 |
 | `batch_report_threshold` | `50` | 批量上报阈值 |
-| `batch_report_interval_ms` | `100` | 批量上报间隔 |
-| `validate_before_report` | `false` | 上报前校验 |
-| `auto_fetch_schema` | `true` | 自动拉取 Schema |
+| `batch_report_interval_ms` | `100` | 批量上报间隔（毫秒） |
+| `validate_before_report` | `false` | 上报前是否校验 |
+| `auto_fetch_schema` | `true` | 连接时自动拉取 Schema |
 
 ---
 
-### TwinClient
+### ThingsClient
 
 SDK 的核心客户端，封装连接管理、属性操作、Slot 操作和 Schema 管理。
 
 #### 连接管理
 
 ```rust
-let client = TwinClient::new(config)?;
+let client = ThingsClient::new(config).await?;
 
 // 连接 / 断开
 client.connect().await?;
-client.disconnect();
+client.disconnect().await;
 
 // 状态检查
-client.is_connected();  // TCP 连接是否建立
-client.is_online();      // 双向流是否活跃
-client.connection_state(); // ConnectionState 枚举
+client.is_connected();     // TCP 连接是否建立
+client.is_online();         // 双向流是否活跃
+client.connection_state();  // ConnectionState 枚举
 ```
+
+**ConnectionState** 状态流转：
+
+| 状态 | 说明 |
+|------|------|
+| `Disconnected` | 未连接 |
+| `Connecting` | 连接中 |
+| `Connected` | TCP 已建立 |
+| `Syncing` | 同步初始状态 |
+| `Online` | 双向流活跃 |
+| `Reconnecting` | 重连中 |
 
 #### 属性上报
 
@@ -163,7 +165,7 @@ let conflicts = client.get_conflict_properties();
 
 #### Slot 操作
 
-Slot 是物模型的组件化扩展，一个设备可以挂载多个子组件。
+Slot 是物模型的组件化扩展，一个设备可以挂载多个子组件（如机械臂的关节）。
 
 ```rust
 // Slot 属性上报
@@ -210,7 +212,7 @@ client.refresh_schema().await?;
 属性值类型枚举。
 
 ```rust
-use astra_faber_twin_sdk::PropertyValue;
+use astra_faber::PropertyValue;
 
 let values = vec![
     PropertyValue::Null,
@@ -266,12 +268,7 @@ match client.validate("temperature", &PropertyValue::Float64(23.5)) {
     Err(ValidationError::PropertyNotFound(prop)) => {
         eprintln!("属性 {} 不存在", prop);
     }
-    Err(ValidationError::SchemaNotLoaded) => {
-        eprintln!("Schema 未加载");
-    }
-    Err(ValidationError::NullValue(prop)) => {
-        eprintln!("{} 不允许为空", prop);
-    }
+    _ => {}
 }
 
 // 批量校验
@@ -288,35 +285,31 @@ let results = client.validate_batch(&[
 当云端期望值与本地上报值产生冲突时，通过冲突解决策略处理。
 
 ```rust
-use astra_faber_twin_sdk::{
+use astra_faber::{
     ConflictResolver, ConflictType, ConflictResolution,
     DefaultConflictResolver, LastWriteWinsResolver,
     DesiredFirstResolver, CallbackResolver,
 };
 
 // 内置策略
-let config = TwinConfig::builder()
-    // 默认：接受期望值
-    .conflict_resolver(DefaultConflictResolver)
-    // 或：最后写入者胜出（基于 HLC）
-    .conflict_resolver(LastWriteWinsResolver)
-    // 或：期望值优先
-    .conflict_resolver(DesiredFirstResolver)
+let config = ThingsConfig::builder()
+    .conflict_resolver(Arc::new(DefaultConflictResolver))  // HLC 最后写入者胜出
+    // .conflict_resolver(Arc::new(DesiredFirstResolver))  // 期望值优先
     .build()?;
 
 // 自定义回调
-let config = TwinConfig::builder()
-    .conflict_resolver(CallbackResolver::new(|conflict| {
+let config = ThingsConfig::builder()
+    .conflict_resolver(Arc::new(CallbackResolver::new(|conflict| {
         match conflict {
-            ConflictType::DesiredVsLocalPending { property, desired, local, .. } => {
-                println!("属性 {} 冲突: 期望={:?}, 本地={:?}", property, desired, local);
+            ConflictType::DesiredVsLocalPending { property_path, .. } => {
+                println!("属性 {} 冲突", property_path);
                 ConflictResolution::AcceptDesired
             }
-            ConflictType::DesiredVsReported { property, .. } => {
+            ConflictType::DesiredVsReported { .. } => {
                 ConflictResolution::Defer // 延迟处理
             }
         }
-    }))
+    })))
     .build()?;
 ```
 
@@ -337,8 +330,8 @@ let config = TwinConfig::builder()
 
 ```rust
 // 查询队列状态
-let queue_len = client.offline_queue_len();
-let has_pending = client.has_pending_data();
+let queue_len = client.offline_queue_len().await;
+let has_pending = client.has_pending_data().await;
 
 println!("离线队列中有 {} 条待发送数据", queue_len);
 ```
@@ -346,9 +339,9 @@ println!("离线队列中有 {} 条待发送数据", queue_len);
 配合持久化使用，可保证数据不丢失：
 
 ```rust
-let config = TwinConfig::builder()
+let config = ThingsConfig::builder()
     .max_offline_queue_size(50000)
-    .file_persistence("./twin_data")  // 队列持久化到文件
+    .file_persistence("./things_data")  // 队列持久化到文件
     .build()?;
 ```
 
@@ -359,23 +352,21 @@ let config = TwinConfig::builder()
 支持将本地缓存和离线队列持久化，设备重启后自动恢复。
 
 ```rust
-use astra_faber_twin_sdk::PersistenceConfig;
-
 // 内存持久化（默认，重启丢失）
-let config = TwinConfig::builder()
-    .persistence(PersistenceConfig::Memory)
+let config = ThingsConfig::builder()
+    .persistence(PersistenceConfig::None)
     .build()?;
 
 // 文件持久化（推荐生产使用）
-let config = TwinConfig::builder()
-    .file_persistence("./twin_data")
+let config = ThingsConfig::builder()
+    .file_persistence("./things_data")
     .build()?;
 ```
 
 也可实现自定义持久化：
 
 ```rust
-use astra_faber_twin_sdk::{Persistence, OfflineQueue, LocalCache};
+use astra_faber::{Persistence, OfflineQueue, LocalCache};
 
 struct MyPersistence;
 
@@ -415,7 +406,7 @@ assert!(zero.is_zero());
 
 HLC 特性：
 
-- **物理时间** + **逻辑计数器**，兼顾时间精度和因果顺序
+- **物理时间 + 逻辑计数器**，兼顾时间精度和因果顺序
 - 自动与服务端 HLC 同步，接收服务端时间戳时校准本地时钟
 - 单调递增，即使本地时钟回拨也能保证顺序
-- 编码为 `u64`，高 48 位为毫秒时间戳，低 16 位为逻辑计数器
+- 编码为 `u64`：高 48 位为毫秒时间戳，低 16 位为逻辑计数器

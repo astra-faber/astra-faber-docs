@@ -3,14 +3,14 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   lang: 'zh-CN',
   title: 'AstraFaber',
-  description: '基于 Apache Arrow 的高性能数据库，面向 IoT 与边缘计算',
+  description: '面向 IoT 与机器人的统一平台，集成设备建模、数据管理、文件服务与数字孪生',
 
   head: [
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/logo.svg' }],
     ['meta', { name: 'theme-color', content: '#7c3aed' }],
     ['meta', { name: 'og:type', content: 'website' }],
     ['meta', { name: 'og:title', content: 'AstraFaber' }],
-    ['meta', { name: 'og:description', content: '基于 Apache Arrow 的高性能数据库' }],
+    ['meta', { name: 'og:description', content: '面向 IoT 与机器人的统一平台' }],
   ],
 
   themeConfig: {
@@ -22,8 +22,21 @@ export default defineConfig({
       {
         text: 'SDK',
         items: [
-          { text: 'Client SDK', link: '/sdk/client' },
-          { text: 'Twin SDK', link: '/sdk/twin' },
+          { text: '总览', link: '/sdk/' },
+          {
+            text: 'Vera 模块',
+            items: [
+              { text: 'Client 数据读写', link: '/sdk/vera/client' },
+              { text: 'Things 设备孪生', link: '/sdk/vera/things' },
+            ],
+          },
+          {
+            text: 'Arca 模块',
+            items: [
+              { text: 'File 文件上传', link: '/sdk/arca/file' },
+              { text: 'Recorder MCAP 录制', link: '/sdk/arca/recorder' },
+            ],
+          },
         ],
       },
     ],
@@ -31,10 +44,25 @@ export default defineConfig({
     sidebar: {
       '/sdk/': [
         {
-          text: 'SDK 文档',
+          text: 'astra-faber SDK',
           items: [
-            { text: 'Client SDK', link: '/sdk/client' },
-            { text: 'Twin SDK', link: '/sdk/twin' },
+            { text: '总览', link: '/sdk/' },
+          ],
+        },
+        {
+          text: 'Vera 模块',
+          collapsed: false,
+          items: [
+            { text: 'Client 数据读写', link: '/sdk/vera/client' },
+            { text: 'Things 设备孪生', link: '/sdk/vera/things' },
+          ],
+        },
+        {
+          text: 'Arca 模块',
+          collapsed: false,
+          items: [
+            { text: 'File 文件上传', link: '/sdk/arca/file' },
+            { text: 'Recorder MCAP 录制', link: '/sdk/arca/recorder' },
           ],
         },
       ],
@@ -59,7 +87,7 @@ export default defineConfig({
     },
 
     footer: {
-      message: '基于 Apache Arrow 构建',
+      message: 'IoT & Robotics Platform',
       copyright: 'Copyright © 2024-present AstraFaber',
     },
 

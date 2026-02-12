@@ -1,21 +1,19 @@
-# Client SDK
+# Vera Client SDK
 
-AstraFaber Client 是官方 Rust 客户端库，提供类型安全的 API 用于连接服务器、创建表/设备、写入和查询数据。支持 gRPC Streaming 高吞吐批量操作。
+数据读写客户端，提供类型安全的 API 用于连接服务器、创建表/设备、写入和查询数据。支持 gRPC Streaming 高吞吐批量操作。
 
 ## 安装
 
-在 `Cargo.toml` 中添加依赖：
-
 ```toml
 [dependencies]
-astra-faber-client = { path = "../crates/astra-faber-client" }
+astra-faber = { version = "0.1", features = ["vera"] }
 tokio = { version = "1", features = ["full"] }
 ```
 
 ## 快速上手
 
 ```rust
-use astra_faber_client::{Client, SchemaBuilder, Table, int32_type, string_type};
+use astra_faber::vera::{Client, SchemaBuilder, Table, int32_type, string_type};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -39,8 +37,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let table = Table::new("users")
         .with_schema(schema)
-        .add_row(astra_faber_client::row![1i32, "Alice", 30i32])?
-        .add_row(astra_faber_client::row![2i32, "Bob", 25i32])?
+        .add_row(astra_faber::row![1i32, "Alice", 30i32])?
+        .add_row(astra_faber::row![2i32, "Bob", 25i32])?
         .build()?;
 
     client.insert_table(table).await?;
@@ -55,7 +53,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 连接服务器并执行所有数据操作的入口。
 
 ```rust
-use astra_faber_client::Client;
+use astra_faber::vera::Client;
 
 let mut client = Client::connect("http://127.0.0.1:50051").await?;
 ```
@@ -93,7 +91,7 @@ let mut client = Client::connect("http://127.0.0.1:50051").await?;
 构建表或设备的 Schema 定义。
 
 ```rust
-use astra_faber_client::{SchemaBuilder, int32_type, string_type, timestamp_type};
+use astra_faber::vera::{SchemaBuilder, int32_type, string_type, timestamp_type};
 
 let schema = SchemaBuilder::new()
     .add_field("id", int32_type(), None)
@@ -110,7 +108,7 @@ let schema = SchemaBuilder::new()
 构建表数据并插入。
 
 ```rust
-use astra_faber_client::{Table, SchemaBuilder, int32_type, string_type};
+use astra_faber::vera::{Table, SchemaBuilder, int32_type, string_type};
 
 let schema = SchemaBuilder::new()
     .add_field("id", int32_type(), None)
@@ -119,15 +117,15 @@ let schema = SchemaBuilder::new()
 
 let table = Table::new("users")
     .with_schema(schema)
-    .add_row(astra_faber_client::row![1i32, "Alice"])?
-    .add_row(astra_faber_client::row![2i32, "Bob"])?
+    .add_row(astra_faber::row![1i32, "Alice"])?
+    .add_row(astra_faber::row![2i32, "Bob"])?
     .build()?;
 ```
 
 `row!` 宏支持自动推断类型，也可以使用 `RowBuilder`：
 
 ```rust
-use astra_faber_client::RowBuilder;
+use astra_faber::vera::{RowBuilder, Value};
 
 let row = RowBuilder::new()
     .add_value(Value::I32(1))
@@ -142,7 +140,7 @@ let row = RowBuilder::new()
 创建设备（超级表），其中 Tag 字段用于标识子表。
 
 ```rust
-use astra_faber_client::{Device, int32_type, float64_type, string_type};
+use astra_faber::vera::{Device, int32_type, float64_type, string_type};
 
 let device = Device::builder("temperature_sensor")
     .add_tag("device_id", string_type())
@@ -161,7 +159,7 @@ client.create_device(device).await?;
 构建设备数据并插入。
 
 ```rust
-use astra_faber_client::{DeviceData, Value};
+use astra_faber::vera::{DeviceData, Value};
 
 let data = DeviceData::builder("temperature_sensor")
     .add_row(
@@ -181,10 +179,10 @@ client.insert_device(data).await?;
 
 ### Value
 
-值类型枚举，支持所有 AstraFaber 数据类型。
+值类型枚举，支持所有数据类型。
 
 ```rust
-use astra_faber_client::Value;
+use astra_faber::vera::Value;
 
 let values = vec![
     Value::I32(42),
@@ -201,7 +199,7 @@ let values = vec![
 **Struct 值**：
 
 ```rust
-use astra_faber_client::{Value, struct_value};
+use astra_faber::vera::{Value, struct_value};
 
 let point = struct_value! {
     "x" => Value::F64(1.0),
@@ -272,7 +270,7 @@ for resp in responses {
 ### 枚举类型示例
 
 ```rust
-use astra_faber_client::{enum8_type, enum8_type_with_values};
+use astra_faber::vera::{enum8_type, enum8_type_with_values};
 
 // 自动编号
 let status = enum8_type(vec!["active", "inactive", "deleted"]);
@@ -292,7 +290,7 @@ let priority = enum8_type_with_values(vec![
 混合逻辑时钟（Hybrid Logical Clock）用于分布式环境下的因果排序。
 
 ```rust
-use astra_faber_client::{HlcTimestamp, ClientHlcManager};
+use astra_faber::vera::{HlcTimestamp, ClientHlcManager};
 
 // 客户端 HLC 管理器（按子表独立管理）
 let hlc_manager = ClientHlcManager::new();
@@ -319,13 +317,13 @@ let data = DeviceData::builder("temperature_sensor")
 ## 错误处理
 
 ```rust
-use astra_faber_client::Error;
+use astra_faber::Error;
 
 match client.create_table("users", fields).await {
     Ok(()) => println!("创建成功"),
-    Err(Error::InvalidArgument(msg)) => eprintln!("参数错误: {}", msg),
-    Err(Error::ConnectionError(msg)) => eprintln!("连接失败: {}", msg),
-    Err(Error::GrpcError(status)) => eprintln!("gRPC 错误: {}", status),
-    Err(Error::BuildError(msg)) => eprintln!("构建错误: {}", msg),
+    Err(Error::Validation(msg)) => eprintln!("参数错误: {}", msg),
+    Err(Error::Connection(msg)) => eprintln!("连接失败: {}", msg),
+    Err(Error::Grpc(status)) => eprintln!("gRPC 错误: {}", status),
+    Err(e) => eprintln!("其他错误: {}", e),
 }
 ```
