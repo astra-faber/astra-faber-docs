@@ -86,6 +86,81 @@ vera-cli table create \
 
 ---
 
+### table list — 列出元数据
+
+列出服务端的元数据信息。默认只列出超级表（设备定义），使用 `--all` 列出所有类别。
+
+```bash
+# 默认只列超级表
+vera-cli table list
+
+# 列出所有类别
+vera-cli table list --all
+
+# 按类别选择
+vera-cli table list --supertables --tables
+vera-cli table list --thing-models --interface-types --component-models
+
+# JSON 格式输出
+vera-cli -o json table list --all
+```
+
+| 参数 | 说明 | 默认 |
+|------|------|------|
+| `--all` | 列出所有类别 | 否 |
+| `--supertables` | 列出超级表（设备定义） | 无 flag 时默认列出 |
+| `--tables` | 列出普通表 | 否 |
+| `--thing-models` (别名 `--tm`) | 列出物模型 | 否 |
+| `--interface-types` (别名 `--it`) | 列出接口类型 | 否 |
+| `--component-models` (别名 `--cm`) | 列出组件模型 | 否 |
+
+#### 支持的类别
+
+| 类别 | 说明 |
+|------|------|
+| **超级表** | 设备定义，包括名称、主键、Tag 列、Property 列、子表数量 |
+| **普通表** | 通过 `table create` 创建的数据表 |
+| **物模型** | ThingModel 定义，包含属性、Slot、Port 信息 |
+| **接口类型** | InterfaceType 定义，描述组件兼容接口 |
+| **组件模型** | ComponentModel 定义，描述可插拔硬件组件 |
+
+#### 输出示例
+
+表格格式：
+
+```
+超级表 (3):
+┌───────────────────────────┬────┬───────────┬───────────┬──────────────────────┬────────┐
+│ 名称                       │ ID │ 主键       │ Tag 列    │ Property 列           │ 子表数  │
+├───────────────────────────┼────┼───────────┼───────────┼──────────────────────┼────────┤
+│ twin_robot                 │ 1  │ device_id │ device_id │ temperature, force   │ 5      │
+│ twin_robot_slot_gripper    │ 2  │ device_id │ device_id │ grip_force           │ 3      │
+│ sensor                     │ 3  │ device_id │ device_id │ temp, humidity       │ 100    │
+└───────────────────────────┴────┴───────────┴───────────┴──────────────────────┴────────┘
+```
+
+JSON 格式：
+
+```json
+{
+  "type": "supertables",
+  "total": 3,
+  "items": [
+    {
+      "name": "twin_robot",
+      "stable_id": 1,
+      "primary_key": "device_id",
+      "tag_columns": ["device_id"],
+      "property_columns": ["temperature", "force"],
+      "subtable_count": 5,
+      "created_at": 1700000000000
+    }
+  ]
+}
+```
+
+---
+
 ### insert device — 插入设备数据
 
 向设备超级表中插入一行数据。
@@ -226,7 +301,10 @@ vera-cli device create \
     --property humidity:float64 \
     --primary-key device_id
 
-# 3. 插入数据
+# 3. 查看已创建的超级表
+vera-cli table list
+
+# 4. 插入数据
 vera-cli insert device \
     --name temperature_sensor \
     --tags sensor-001,room-a \
@@ -237,11 +315,14 @@ vera-cli insert device \
     --tags sensor-002,room-b \
     --values 24.1,58.3
 
-# 4. 查询最新值
+# 5. 查询最新值
 vera-cli query latest --device temperature_sensor --id sensor-001
 
-# 5. 批量查询
+# 6. 批量查询
 vera-cli query batch --device temperature_sensor --ids sensor-001,sensor-002
+
+# 7. 查看所有元数据
+vera-cli table list --all
 ```
 
 ### 配合 vera-web 使用
