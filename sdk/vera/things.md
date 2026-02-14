@@ -410,3 +410,334 @@ HLC 特性：
 - 自动与服务端 HLC 同步，接收服务端时间戳时校准本地时钟
 - 单调递增，即使本地时钟回拨也能保证顺序
 - 编码为 `u64`：高 48 位为毫秒时间戳，低 16 位为逻辑计数器
+
+---
+
+## 实战示例：机械臂 + 摄像头 Slot
+
+以下是一个完整的端到端示例，演示如何：
+
+1. 使用管理端 gRPC 创建 InterfaceType、ComponentModel 和 ThingModel（含 Slot）
+2. 注册设备并绑定 Slot 组件
+3. 使用 astra-faber SDK 上报根属性和 Slot 属性
+4. 通过 gRPC 查询验证设备状态
+
+也可以使用 [vera-web 管理界面](/tools/vera-web) 可视化完成步骤 1-2 的配置。
+
+### 场景描述
+
+- **物模型**：机械臂（`robot_arm`），包含根属性 `joint_angle`、`control_mode`
+- **Slot**：腕部相机插槽（`camera_slot`），兼容 `camera_port@>=1.0` 接口
+- **组件**：Nikon Z8 相机，实现 `camera_port@1.0` 接口，扩展 `iso` 属性
+
+### 依赖配置
+
+```toml
+[dependencies]
+astra-faber = { version = "0.1", features = ["vera"] }
+vera-api = "0.1"        # gRPC 管理端 API
+vera-client = "0.1"     # 类型辅助函数
+tonic = "0.14"
+tokio = { version = "1", features = ["full"] }
+chrono = "0.4"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+```
+
+### Step 1: 创建接口类型（InterfaceType）
+
+InterfaceType 定义了组件的标准契约。这里定义一个相机接口，包含分辨率、帧率等必需属性。
+
+```rust
+use vera_api::things::*;
+use vera_client::{int32_type, float32_type};
+
+fn build_camera_interface_type() -> InterfaceTypeDef {
+    InterfaceTypeDef {
+        interface_type_id: "camera_port".to_string(),
+        version: "1.0".to_string(),
+        category: "sensor".to_string(),
+        required_properties: vec![
+            PropertyDef {
+                name: "分辨率宽度".into(),
+                identifier: "resolution_width".into(),
+                data_type: Some(int32_type()),
+                access_mode: AccessMode::ReadOnly as i32,
+                description: Some("图像宽度（像素）".into()),
+                unit: Some("px".into()),
+                ..Default::default()
+            },
+            PropertyDef {
+                name: "分辨率高度".into(),
+                identifier: "resolution_height".into(),
+                data_type: Some(int32_type()),
+                access_mode: AccessMode::ReadOnly as i32,
+                description: Some("图像高度（像素）".into()),
+                unit: Some("px".into()),
+                ..Default::default()
+            },
+            PropertyDef {
+                name: "帧率".into(),
+                identifier: "fps".into(),
+                data_type: Some(float32_type()),
+                access_mode: AccessMode::ReadOnly as i32,
+                description: Some("每秒帧数".into()),
+                unit: Some("fps".into()),
+                ..Default::default()
+            },
+        ],
+        optional_properties: vec![],
+        capabilities: vec!["capture".into(), "stream".into()],
+        description: Some("相机接口标准契约".into()),
+        ..Default::default()
+    }
+}
+```
+
+### Step 2: 创建组件模型（ComponentModel）
+
+ComponentModel 代表具体的硬件产品，通过 Port 声明实现了哪些接口。
+
+```rust
+fn build_nikon_z8_component() -> ComponentModelDef {
+    ComponentModelDef {
+        vendor: "nikon".into(),
+        model_id: "z8".into(),
+        model_name: "Nikon Z8".into(),
+        version: "1.0".into(),
+        ports: vec![PortDef {
+            port_id: "camera".into(),
+            implements: "camera_port@1.0".into(),
+            // 扩展属性：Nikon 特有的 ISO 设置
+            extended_properties: vec![PropertyDef {
+                name: "ISO 感光度".into(),
+                identifier: "iso".into(),
+                data_type: Some(int32_type()),
+                access_mode: AccessMode::ReadWrite as i32,
+                description: Some("ISO 值".into()),
+                ..Default::default()
+            }],
+        }],
+        physical_specs: Some(PhysicalSpecs {
+            weight_kg: Some(0.91),
+            mounting_pattern: Some("1/4-20 tripod".into()),
+        }),
+        description: Some("Nikon Z8 全画幅无反相机".into()),
+    }
+}
+```
+
+### Step 3: 创建物模型（ThingModel）+ Slot
+
+物模型定义了机械臂的根属性和 Slot 插槽。`default_bindings` 指定出厂预装的组件。
+
+```rust
+use vera_client::{float64_type, string_type};
+
+fn build_robot_arm_model() -> ThingModelDef {
+    ThingModelDef {
+        model_id: "e2e_robot_arm".into(),
+        model_name: "E2E 测试机械臂".into(),
+        version: 1,
+        properties: vec![
+            PropertyDef {
+                name: "关节角度".into(),
+                identifier: "joint_angle".into(),
+                data_type: Some(float64_type()),
+                access_mode: AccessMode::ReadOnly as i32,
+                description: Some("当前关节角度（度）".into()),
+                unit: Some("deg".into()),
+                ..Default::default()
+            },
+            PropertyDef {
+                name: "控制模式".into(),
+                identifier: "control_mode".into(),
+                data_type: Some(string_type()),
+                access_mode: AccessMode::ReadWrite as i32,
+                description: Some("控制模式：position / velocity / torque".into()),
+                ..Default::default()
+            },
+        ],
+        // 定义相机 Slot
+        slots: vec![SlotDef {
+            slot_id: "camera_slot".into(),
+            name: "腕部相机".into(),
+            required: false,
+            compatible_interfaces: vec!["camera_port@>=1.0".into()],
+            constraints: Some(SlotConstraints {
+                max_payload_kg: Some(2.0),
+                mounting_pattern: Some("1/4-20 tripod".into()),
+            }),
+            description: Some("安装在机械臂腕部的相机插槽".into()),
+        }],
+        // 默认绑定：出厂预装 Nikon Z8
+        default_bindings: vec![SlotBinding {
+            slot_id: "camera_slot".into(),
+            component_model_id: "nikon_z8@1.0".into(),
+            port_id: "camera".into(),
+            component_instance_id: Some("nikon-z8-sn-001".into()),
+            bound_at: 0,
+        }],
+        ..Default::default()
+    }
+}
+```
+
+### Step 4: 管理端注册 — 通过 gRPC 调用
+
+```rust
+use tonic::transport::Channel;
+use vera_api::things::{
+    things_service_client::ThingsServiceClient,
+    interface_type_service_client::InterfaceTypeServiceClient,
+    component_model_service_client::ComponentModelServiceClient,
+    CreateInterfaceTypeReq, CreateComponentModelReq,
+    CreateThingModelReq, RegisterDeviceReq, BindSlotReq,
+};
+
+const SERVER_ADDR: &str = "http://127.0.0.1:50051";
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let channel = Channel::from_static(SERVER_ADDR).connect().await?;
+
+    // 创建 InterfaceType
+    let mut iface_client = InterfaceTypeServiceClient::new(channel.clone());
+    iface_client.create_interface_type(CreateInterfaceTypeReq {
+        interface_type: Some(build_camera_interface_type()),
+    }).await?;
+
+    // 创建 ComponentModel
+    let mut comp_client = ComponentModelServiceClient::new(channel.clone());
+    comp_client.create_component_model(CreateComponentModelReq {
+        component_model: Some(build_nikon_z8_component()),
+    }).await?;
+
+    // 创建 ThingModel
+    let mut things_client = ThingsServiceClient::new(channel.clone());
+    things_client.create_thing_model(CreateThingModelReq {
+        model: Some(build_robot_arm_model()),
+    }).await?;
+
+    // 注册设备
+    things_client.register_device(RegisterDeviceReq {
+        model_id: "e2e_robot_arm".into(),
+        device_id: "arm-001".into(),
+        device_name: Some("机械臂 #001".into()),
+    }).await?;
+
+    // 绑定 Slot
+    things_client.bind_slot(BindSlotReq {
+        model_id: "e2e_robot_arm".into(),
+        device_id: "arm-001".into(),
+        binding: Some(SlotBinding {
+            slot_id: "camera_slot".into(),
+            component_model_id: "nikon_z8@1.0".into(),
+            port_id: "camera".into(),
+            component_instance_id: Some("nikon-z8-sn-001".into()),
+            bound_at: chrono::Utc::now().timestamp_millis(),
+        }),
+    }).await?;
+
+    println!("管理端配置完成！");
+    Ok(())
+}
+```
+
+::: tip
+上述管理端操作也可以通过 [vera-web](/tools/vera-web) 界面完成，无需编写代码。
+:::
+
+### Step 5: 设备端 — SDK 上报属性
+
+设备端使用 `astra-faber` SDK 连接服务器，上报根属性和 Slot 属性。
+
+```rust
+use astra_faber::{ThingsClient, vera::ThingsConfig};
+use std::time::Duration;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // 配置 SDK
+    let config = ThingsConfig::builder()
+        .server_addr("http://127.0.0.1:50051")
+        .model_id("e2e_robot_arm")
+        .device_id("arm-001")
+        .auto_fetch_schema(true)
+        .build()?;
+
+    // 创建客户端并连接
+    let client = ThingsClient::new(config).await?;
+    client.connect().await?;
+
+    // 等待 Schema 同步
+    tokio::time::sleep(Duration::from_millis(500)).await;
+    println!("Schema 版本: {}", client.schema_version());
+
+    // 上报根属性
+    client.report("joint_angle", 45.0f64).await?;
+    client.report("control_mode", "position").await?;
+
+    // 上报 Slot 属性（接口标准属性）
+    client.report_slot("camera_slot", "resolution_width", 8256i32).await?;
+    client.report_slot("camera_slot", "resolution_height", 5504i32).await?;
+    client.report_slot("camera_slot", "fps", 30.0f32).await?;
+
+    // 上报 Slot 扩展属性（Nikon 特有）
+    client.report_slot("camera_slot", "iso", 800i32).await?;
+
+    println!("属性上报完成！");
+    client.disconnect().await;
+    Ok(())
+}
+```
+
+### Step 6: 查询验证 — GetDeviceState
+
+通过 gRPC 查询设备状态，验证上报数据。
+
+```rust
+use vera_api::things::{
+    things_service_client::ThingsServiceClient,
+    GetDeviceStateReq,
+};
+
+let mut things_client = ThingsServiceClient::new(channel);
+let state = things_client.get_device_state(GetDeviceStateReq {
+    model_id: "e2e_robot_arm".into(),
+    device_id: "arm-001".into(),
+}).await?.into_inner();
+
+// 根属性
+for prop in &state.root_properties {
+    println!("{}: {:?}", prop.identifier, prop.reported);
+}
+// 输出:
+//   joint_angle: Some(Value { f64_value: 45.0 })
+//   control_mode: Some(Value { string_value: "position" })
+
+// Slot 属性
+for slot in &state.slot_states {
+    println!("Slot: {}", slot.slot_id);
+    for prop in &slot.properties {
+        println!("  {}: {:?}", prop.identifier, prop.reported);
+    }
+}
+// 输出:
+//   Slot: camera_slot
+//     resolution_width: Some(Value { i32_value: 8256 })
+//     resolution_height: Some(Value { i32_value: 5504 })
+//     fps: Some(Value { f32_value: 30.0 })
+//     iso: Some(Value { i32_value: 800 })
+```
+
+::: info 完整代码
+完整的 E2E 测试代码位于仓库 `tests/e2e/tests/e2e_slot_test.rs`，可直接运行：
+```bash
+# 先启动 Vera 服务端
+cargo run -p vera
+
+# 运行 E2E 测试
+cargo test -p e2e-tests --test e2e_slot_test -- --ignored --nocapture
+```
+:::

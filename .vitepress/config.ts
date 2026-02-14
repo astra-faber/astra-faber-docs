@@ -39,6 +39,13 @@ export default defineConfig({
           },
         ],
       },
+      {
+        text: '工具',
+        items: [
+          { text: 'vera-cli 命令行', link: '/tools/vera-cli' },
+          { text: 'vera-web 管理界面', link: '/tools/vera-web' },
+        ],
+      },
     ],
 
     sidebar: {
@@ -63,6 +70,15 @@ export default defineConfig({
           items: [
             { text: 'File 文件上传', link: '/sdk/arca/file' },
             { text: 'Recorder MCAP 录制', link: '/sdk/arca/recorder' },
+          ],
+        },
+      ],
+      '/tools/': [
+        {
+          text: '工具',
+          items: [
+            { text: 'vera-cli 命令行', link: '/tools/vera-cli' },
+            { text: 'vera-web 管理界面', link: '/tools/vera-web' },
           ],
         },
       ],
